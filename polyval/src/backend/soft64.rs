@@ -162,6 +162,16 @@ impl Mul for U64x2 {
         let y1r = rev64(y1);
         let y2 = y0 ^ y1;
         let y2r = y0r ^ y1r;
+
+        println!("h0: {:016X}, y0: {:016X}", h0, y0);
+        println!("hr0: {:016X}, yr0: {:016X}", h0r, y0r);
+
+        println!("h1: {:016X}, y1: {:016X}", h1, y1);
+        println!("hr1: {:016X}, yr1: {:016X}", h1r, y1r);
+
+        println!("h2: {:016X}, y2: {:016X}", h2, y2);
+        println!("hr2: {:016X}, yr2: {:016X}", h2r, y2r);
+
         let z0 = bmul64(y0, h0);
         let z1 = bmul64(y1, h1);
 
@@ -170,23 +180,139 @@ impl Mul for U64x2 {
         let mut z1h = bmul64(y1r, h1r);
         let mut z2h = bmul64(y2r, h2r);
 
+        println!("z0: {:016X}, z0h: {:016X}", z0, z0h);
+        println!("z1: {:016X}, z1h: {:016X}", z1, z1h);
+        println!("z2: {:016X}, z2h: {:016X}", z2, z2h);
+
+        println!("A");
+
         z2 ^= z0 ^ z1;
         z2h ^= z0h ^ z1h;
+
+        println!("_z2: {:016X}, _z2h:{:016X}", z2, z2h);
+
         z0h = rev64(z0h) >> 1;
         z1h = rev64(z1h) >> 1;
         z2h = rev64(z2h) >> 1;
+
+        println!(
+            "__z0h: {:016X}, __z1h: {:016X}, __z2h: {:016X}",
+            z0h, z1h, z2h
+        );
+        println!("B");
 
         let v0 = z0;
         let mut v1 = z0h ^ z2;
         let mut v2 = z1 ^ z2h;
         let mut v3 = z1h;
 
+        println!(
+            "v0: {:016X}, v1: {:016X}, v2: {:016X}, v3: {:016X}",
+            v0, v1, v2, v3
+        );
+
         v2 ^= v0 ^ (v0 >> 1) ^ (v0 >> 2) ^ (v0 >> 7);
         v1 ^= (v0 << 63) ^ (v0 << 62) ^ (v0 << 57);
+
+        println!("C");
+        println!("_v1: {:016X}, _v2: {:016X}", v1, v2);
+
         v3 ^= v1 ^ (v1 >> 1) ^ (v1 >> 2) ^ (v1 >> 7);
         v2 ^= (v1 << 63) ^ (v1 << 62) ^ (v1 << 57);
 
+        println!("__v2: {:016X}, __v3: {:016X}", v2, v3);
+
         U64x2(v2, v3)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // generate a test vector
+    #[test]
+    fn test_mul_0() {
+        let x = U64x2(0u64, 0u64);
+        let y = U64x2(0u64, 128u64);
+        let z = x.mul(y);
+        println!("x*y: {:?}", z);
+        panic!()
+        // x*y: U64x2(0, 0)
+    }
+
+    // generate a test vector
+    #[test]
+    fn test_mul_1() {
+        let x = U64x2(0u64, 1u64);
+        let y = U64x2(0u64, 1u64);
+        let z = x.mul(y);
+        // let x = 0x1111_1111_1111_1111 as u64;
+        // let y = 0x1111_1111_1111_1111 as u64;
+        println!("x*y: {:?}", z);
+        panic!()
+        // x*y: U64x2(1, 0)
+    }
+    // generate a test vector
+    #[test]
+    fn test_mul_1_le() {
+        let x = U64x2(1u64, 0u64);
+        let y = U64x2(1u64, 0u64);
+        let z = x.mul(y);
+        // let x = 0x1111_1111_1111_1111 as u64;
+        // let y = 0x1111_1111_1111_1111 as u64;
+        println!("x*y: {:08X}, {:08X}", z.0, z.1);
+        panic!()
+        // x*y: U64x2(1, 0)
+    }
+    #[test]
+    fn test_mul_2() {
+        let x = U64x2(1u64, 0u64);
+        let y = U64x2(0u64, 1u64);
+        let z = x.mul(y);
+        // let x = 0x1111_1111_1111_1111 as u64;
+        // let y = 0x1111_1111_1111_1111 as u64;
+        println!("x*y: {:?}", z);
+        panic!()
+        // x*y: U64x2(13979173243358019584, 1)
+        //  0xC323456789ABCDEF, 1
+    }
+    #[test]
+    fn test_mul_3() {
+        let x = U64x2(0, 0xBB00 as u64);
+        let y = U64x2(0u64, 0xF1 as u64);
+        let z = x.mul(y);
+        // let x = 0x1111_1111_1111_1111 as u64;
+        // let y = 0x1111_1111_1111_1111 as u64;
+        println!("x*y: {:08X}, {:08X}", z.0, z.1);
+        panic!()
+        // x*y: U64x2(13979173243358019584, 1)
+        //  0xC323456789ABCDEF, 1
+    }
+    #[test]
+    fn test_mul_4() {
+        let x = U64x2(0xBB00 as u64, 0);
+        let y = U64x2(0u64, 0xF1 as u64);
+        let z = x.mul(y);
+        // let x = 0x1111_1111_1111_1111 as u64;
+        // let y = 0x1111_1111_1111_1111 as u64;
+        println!("x*y: {:08X}, {:08X}", z.0, z.1);
+        panic!()
+        // x*y: U64x2(13979173243358019584, 1)
+        //  0xC323456789ABCDEF, 1
+    }
+    #[test]
+    fn test_mul_5() {
+        let f = 0xFFFFFFFFFFFFFFFF as u64;
+        let x = U64x2(f, f);
+        let y = U64x2(f, f);
+        let z = x.mul(y);
+        // let x = 0x1111_1111_1111_1111 as u64;
+        // let y = 0x1111_1111_1111_1111 as u64;
+        println!("x*y: {:08X}, {:08X}", z.0, z.1);
+        panic!()
+        // x*y: U64x2(13979173243358019584, 1)
+        //  0xC323456789ABCDEF, 1
     }
 }
 
@@ -223,7 +349,8 @@ fn bmul64(x: u64, y: u64) -> u64 {
     z2 &= 0x4444_4444_4444_4444;
     z3 &= 0x8888_8888_8888_8888;
 
-    z0 | z1 | z2 | z3
+    let out = z0 | z1 | z2 | z3;
+    out
 }
 
 /// Bit-reverse a `u64` in constant time
